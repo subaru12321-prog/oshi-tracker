@@ -1,0 +1,16 @@
+# config.yaml としてコピーしてから、実際のアカウント情報を確認・修正してください。
+# cp config.example.yaml config.yaml
+
+members:
+  - name: "メンバー名"
+    showroom:
+      room_url_key: "SHOWROOMのルームURLの末尾部分"
+    instagram:
+      username: "instagramのユーザー名(@なし)"
+    x:
+      username: "Xのユーザー名(@なし)"
+    tiktok:
+      username: "TikTokのユーザー名(@なし)"
+
+# 収集間隔(分)
+poll_interval_minutes: 20

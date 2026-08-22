@@ -1,0 +1,9 @@
+requests
+beautifulsoup4
+instaloader
+twikit
+TikTokApi
+playwright
+flask
+python-dotenv
+pyyaml

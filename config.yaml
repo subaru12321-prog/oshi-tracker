@@ -1,0 +1,107 @@
+# Web検索で調べた情報をもとに自動生成した設定ファイルです。
+# 精度は保証できないので、ACCOUNTS.md のリンクから実際のアカウントを開いて
+# 本人・公式のものか確認してください。間違っていたらここを直接書き換えればOKです。
+#
+# 注意: 菅波美玲さんは2026年6月12日付で卒業されたとの情報があったため、
+# このリストには含めていません。もし違っていたら教えてください。
+
+members:
+  - name: "尾木波菜"
+    showroom:
+      room_url_key: "ME_HANA_OGI"
+    instagram:
+      username: "ogi_hana__"
+    x:
+      username: "ogi_hana_"
+    tiktok:
+      username: "notequal_me_hana"
+
+  - name: "落合希来里"
+    showroom:
+      room_url_key: "ME_KIRARI_OCHIAI"
+    instagram:
+      username: "_ochiaikirari_"
+    x:
+      username: "ochiai_kirari"
+
+  - name: "蟹沢萌子"
+    showroom:
+      room_url_key: "ME_MOEKO_KANISAWA"
+    instagram:
+      username: "kanisawa_moeko_"
+    x:
+      username: "kanisawa_moeko"
+
+  - name: "河口夏音"
+    showroom:
+      room_url_key: "ME_NATSUNE_KAWAGUCHI"
+    instagram:
+      username: "kawaguchi__natsune"
+    x:
+      username: "kawaguchi_natsu"
+
+  - name: "川中子奈月心"
+    showroom:
+      room_url_key: "ME_NATSUMI_KAWANAGO"
+    x:
+      username: "kawanagonatsumi"
+    tiktok:
+      username: "notequal_me_natsumi"
+
+  - name: "櫻井もも"
+    showroom:
+      room_url_key: "ME_MOMO_SAKURAI"
+    instagram:
+      username: "sakurai_momo_"
+    x:
+      username: "_sakurai_momo_"
+
+  - name: "鈴木瞳美"
+    showroom:
+      room_url_key: "ME_HITOMI_SUZUKI"
+    instagram:
+      username: "suzuki_hitomi__"
+    x:
+      username: "suzuki_hitomi_"
+    tiktok:
+      username: "notequal_me_hitomi"
+
+  - name: "谷崎早耶"
+    showroom:
+      room_url_key: "ME_SAYA_TANIZAKI"
+    instagram:
+      username: "tanizaki_saya__"
+    x:
+      username: "tanizaki_saya"
+
+  - name: "冨田菜々風"
+    showroom:
+      room_url_key: "ME_NANAKA_TOMITA"
+    instagram:
+      username: "tomita_nanaka"
+    x:
+      username: "tomita_nanaka"
+
+  - name: "永田詩央里"
+    showroom:
+      room_url_key: "ME_SHIORI_NAGATA"
+    x:
+      username: "nagata_shiori_"
+
+  - name: "本田珠由記"
+    showroom:
+      room_url_key: "ME_MIYUKI_HONDA"
+    instagram:
+      username: "honda_miyuki__"
+    x:
+      username: "honda_miyuki_"
+
+  - name: "公式(グループ全体)"
+    instagram:
+      username: "notequal_me.official"
+    x:
+      username: "notequal_me"
+    tiktok:
+      username: "notequal_me"
+
+poll_interval_minutes: 20

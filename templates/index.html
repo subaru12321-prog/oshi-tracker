@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>推しトラッカー</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>推しトラッカー</h1>
+
+  <nav class="platform-nav">
+    <a href="{{ url_for('index', member=active_member) }}" class="{{ 'active' if not active_platform else '' }}">すべて</a>
+    {% for p in platforms %}
+    <a href="{{ url_for('index', platform=p, member=active_member) }}" class="{{ 'active' if active_platform == p else '' }}">{{ p }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if members %}
+  <form class="member-form" method="get">
+    {% if active_platform %}<input type="hidden" name="platform" value="{{ active_platform }}">{% endif %}
+    <select name="member" onchange="this.form.submit()">
+      <option value="">メンバーで絞り込み(全員)</option>
+      {% for m in members %}
+      <option value="{{ m }}" {{ 'selected' if active_member == m else '' }}>{{ m }}</option>
+      {% endfor %}
+    </select>
+    <noscript><button type="submit">絞り込む</button></noscript>
+  </form>
+  {% endif %}
+</header>
+
+<main>
+  {% if not posts %}
+  <p class="empty">まだ投稿がありません。main.py を実行して収集してください。</p>
+  {% endif %}
+  <ul class="posts">
+    {% for post in posts %}
+    <li class="post platform-{{ post.platform }}">
+      {% if post.image_url %}
+      <img class="thumb" src="{{ post.image_url }}" loading="lazy" alt="">
+      {% endif %}
+      <div class="body">
+        <div class="meta">
+          <span class="platform-tag">{{ post.platform }}</span>
+          {% if post.member %}<span class="member-tag">{{ post.member }}</span>{% endif %}
+          <span class="time">{{ post.published_at }}</span>
+        </div>
+        <p class="content">{{ post.content }}</p>
+        <a class="link" href="{{ post.url }}" target="_blank" rel="noopener">元の投稿を見る →</a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</main>
+</body>
+</html>
