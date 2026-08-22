@@ -21,6 +21,12 @@ def _get_loader():
             download_comments=False,
             save_metadata=False,
             compress_json=False,
+            # レート制限(429)時、デフォルトだと指数バックオフで
+            # 数分〜十数分待って延々とリトライし続けるため、1回失敗したら
+            # すぐ諦めて次のアカウントに進むようにする(特にGitHub Actionsの
+            # 共有IPはInstagram側に既にブロックされていることが多い)。
+            max_connection_attempts=1,
+            request_timeout=15,
         )
     return _loader
 
