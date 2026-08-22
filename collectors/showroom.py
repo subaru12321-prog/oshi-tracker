@@ -46,22 +46,23 @@ def collect(room_url_keys):
 
         room_id = status.get("room_id")
         live_id = status.get("live_id") or status.get("broadcast_key") or room_id
-        started_at = status.get("current_live_started_at")
+        started_at = status.get("started_at")
         published_at = (
             datetime.datetime.fromtimestamp(started_at).isoformat()
             if started_at
             else datetime.datetime.now().isoformat()
         )
+        name = status.get("room_name") or room_url_key
 
         results.append(
             {
                 "identifier": room_url_key,
                 "platform": "showroom",
                 "source_id": f"live-{room_id}-{live_id}",
-                "author": status.get("main_name") or room_url_key,
-                "content": f"{status.get('main_name', room_url_key)} が配信中です",
+                "author": name,
+                "content": f"{name} が配信中です",
                 "url": f"https://www.showroom-live.com/{room_url_key}",
-                "image_url": status.get("image_square") or status.get("image"),
+                "image_url": status.get("image_s"),
                 "published_at": published_at,
             }
         )
