@@ -103,5 +103,3 @@ members:
       username: "notequal_me"
     tiktok:
       username: "notequal_me"
-
-poll_interval_minutes: 20

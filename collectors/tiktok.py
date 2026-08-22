@@ -34,7 +34,9 @@ async def _collect_async(usernames, limit_per_user=5):
                     v = video.as_dict
                     create_time = v.get("createTime")
                     published_at = (
-                        datetime.datetime.fromtimestamp(create_time).isoformat()
+                        datetime.datetime.fromtimestamp(
+                            create_time, datetime.timezone.utc
+                        ).isoformat()
                         if create_time
                         else None
                     )
@@ -46,7 +48,7 @@ async def _collect_async(usernames, limit_per_user=5):
                             "author": username,
                             "content": (v.get("desc") or "")[:500],
                             "url": f"https://www.tiktok.com/@{username}/video/{v.get('id')}",
-                            "image_url": v.get("video", {}).get("cover"),
+                            "image_url": (v.get("video") or {}).get("cover"),
                             "published_at": published_at,
                         }
                     )

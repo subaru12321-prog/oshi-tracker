@@ -10,7 +10,6 @@ import datetime
 import requests
 
 STATUS_URL = "https://www.showroom-live.com/api/room/status"
-PROFILE_URL = "https://www.showroom-live.com/api/room/profile"
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (oshi-tracker personal use bot)"}
 
@@ -18,14 +17,6 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (oshi-tracker personal use bot)"}
 def fetch_status(room_url_key):
     resp = requests.get(
         STATUS_URL, params={"room_url_key": room_url_key}, headers=HEADERS, timeout=15
-    )
-    resp.raise_for_status()
-    return resp.json()
-
-
-def fetch_profile(room_url_key):
-    resp = requests.get(
-        PROFILE_URL, params={"room_url_key": room_url_key}, headers=HEADERS, timeout=15
     )
     resp.raise_for_status()
     return resp.json()
@@ -48,9 +39,9 @@ def collect(room_url_keys):
         live_id = status.get("live_id") or status.get("broadcast_key") or room_id
         started_at = status.get("started_at")
         published_at = (
-            datetime.datetime.fromtimestamp(started_at).isoformat()
+            datetime.datetime.fromtimestamp(started_at, datetime.timezone.utc).isoformat()
             if started_at
-            else datetime.datetime.now().isoformat()
+            else datetime.datetime.now(datetime.timezone.utc).isoformat()
         )
         name = status.get("room_name") or room_url_key
 

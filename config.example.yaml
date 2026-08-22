@@ -11,6 +11,3 @@ members:
       username: "Xのユーザー名(@なし)"
     tiktok:
       username: "TikTokのユーザー名(@なし)"
-
-# 収集間隔(分)
-poll_interval_minutes: 20

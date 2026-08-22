@@ -2,9 +2,11 @@
 Instagram の公開投稿を取得する。
 
 instaloader を使い、ログインなしで公開アカウントの投稿一覧を取得する。
-Instagram側のBot対策により、頻繁に叩くとレート制限・一時ブロックされることがある。
-poll_interval_minutesは短くしすぎないこと。
+Instagram側のBot対策により、頻繁に叩くとレート制限・一時ブロックされることがある
+(特にGitHub Actionsなどのデータセンター側IPは高確率で最初から弾かれる)。
 """
+import datetime
+
 import instaloader
 
 _loader = None
@@ -50,7 +52,9 @@ def collect(usernames, limit_per_user=5):
                         "content": (post.caption or "")[:500],
                         "url": f"https://www.instagram.com/p/{post.shortcode}/",
                         "image_url": post.url,
-                        "published_at": post.date_utc.isoformat(),
+                        "published_at": post.date_utc.replace(
+                            tzinfo=datetime.timezone.utc
+                        ).isoformat(),
                     }
                 )
         except Exception as e:

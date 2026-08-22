@@ -1,8 +1,7 @@
 requests
-beautifulsoup4
-instaloader
-twikit
-TikTokApi
+instaloader==4.15.3
+twikit==2.3.3
+TikTokApi==7.3.3
 playwright
 flask
 python-dotenv
