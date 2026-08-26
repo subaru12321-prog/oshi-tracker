@@ -1,6 +1,18 @@
 {
-  "generated_at": "2026-08-26T11:56:58.605070+00:00",
+  "generated_at": "2026-08-26T14:27:50.070341+00:00",
   "posts": [
+    {
+      "id": 10,
+      "platform": "showroom",
+      "source_id": "live-228540-23345663",
+      "author": "河口 夏音（≠ME）",
+      "content": "河口 夏音（≠ME） が配信中です",
+      "url": "https://www.showroom-live.com/ME_NATSUNE_KAWAGUCHI",
+      "image_url": "https://static.showroom-live.com/image/room/cover/f06ab4161246cf61190ed93a656e39e9f0797d961064e4d83e95ebb9ced1d493_s.png?v=1787754404",
+      "published_at": "2026-08-26T14:26:44+00:00",
+      "fetched_at": "2026-08-26 14:27:43",
+      "member": "河口夏音"
+    },
     {
       "id": 9,
       "platform": "showroom",
