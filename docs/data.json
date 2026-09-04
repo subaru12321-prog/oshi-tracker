@@ -1,6 +1,18 @@
 {
-  "generated_at": "2026-09-04T13:10:16.360266+00:00",
+  "generated_at": "2026-09-04T13:40:41.322084+00:00",
   "posts": [
+    {
+      "id": 42,
+      "platform": "showroom",
+      "source_id": "live-230174-23384001",
+      "author": "谷崎 早耶（≠ME）",
+      "content": "谷崎 早耶（≠ME） が配信中です",
+      "url": "https://www.showroom-live.com/ME_SAYA_TANIZAKI",
+      "image_url": "https://static.showroom-live.com/image/room/cover/9569845becad18b6d4cb450af35a0ad921a3a06b3eb96ccd96b1755540d101b0_s.png?v=1788527417",
+      "published_at": "2026-09-04T13:10:17+00:00",
+      "fetched_at": "2026-09-04 13:40:29",
+      "member": "谷崎早耶"
+    },
     {
       "id": 39,
       "platform": "showroom",
