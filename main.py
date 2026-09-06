@@ -120,6 +120,13 @@ def run_once():
             continue
         try:
             collect_fn = _load_collect_fn(platform)
+        except ImportError:
+            # TikTokのようにローカル専用のオプション依存を使うものは、
+            # クラウドでは未インストールなのが正常。エラー扱いにしない。
+            print(f"[{platform}] 依存パッケージが未インストールのためスキップします")
+            continue
+
+        try:
             posts = collect_fn(identifiers)
         except Exception as e:
             print(f"[{platform}] 収集全体でエラー: {e}")

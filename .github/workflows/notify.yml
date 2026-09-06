@@ -1,0 +1,61 @@
+# スマホから転送されたSNSの通知を1件受け取って記録するワークフロー。
+# スマホ側(MacroDroid等)から repository_dispatch で叩かれる。
+name: notify
+
+on:
+  repository_dispatch:
+    types: [notification]
+
+permissions:
+  contents: write
+
+# あえて concurrency は設定しない。
+# GitHubの並行制御は「待機中のジョブを後から来たものが打ち消す」仕様のため、
+# 通知が短時間に複数届くと取りこぼしが起きる。代わりに下の push ステップで
+# 毎回最新のリモートに載せ直してリトライする。
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Record the notification and push
+        env:
+          NOTIFICATION_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # 他の実行と同時に走っても取りこぼさないよう、毎回リモートの最新を
+          # 取り直してから記録し直す。push が弾かれたらやり直す。
+          for attempt in 1 2 3 4 5; do
+            git fetch origin
+            git reset --hard origin/${GITHUB_REF_NAME}
+
+            python receive_notification.py || exit 1
+
+            git add docs/data.json
+            if git diff --cached --quiet; then
+              echo "変更なし(既に記録済み)"
+              exit 0
+            fi
+
+            git commit -m "chore: record forwarded notification"
+            if git push; then
+              exit 0
+            fi
+
+            echo "push が競合したのでやり直します (試行 ${attempt})"
+            sleep 5
+          done
+
+          echo "5回試しても push できませんでした" >&2
+          exit 1

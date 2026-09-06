@@ -9,6 +9,7 @@ const PLATFORM_LABELS = {
   schedule: "スケジュール",
   youtube: "YouTube",
   instagram: "Instagram",
+  x: "X",
   tiktok: "TikTok",
 };
 

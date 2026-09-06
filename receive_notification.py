@@ -1,0 +1,194 @@
+"""
+スマホから転送された通知を1件受け取り、DBに保存して docs/data.json に反映する。
+
+GitHub Actions の repository_dispatch イベントから呼ばれる。
+ペイロードは環境変数 NOTIFICATION_PAYLOAD にJSON文字列で渡す。
+
+想定するペイロード:
+    {"app": "Instagram", "title": "suzuki_hitomi__", "text": "新しい写真を投稿しました"}
+
+Instagram・X・TikTokは、クラウドのIPからはスクレイピングでの取得ができない
+(データセンターのIPが遮断されている)。そこで、各アプリが公式に配信している
+プッシュ通知をスマホ側で拾って転送してもらい、それを記録する。
+"""
+import datetime
+import hashlib
+import json
+import os
+import sys
+from pathlib import Path
+
+import config
+import db
+import export_json
+import member_match
+
+DOCS_DATA_JSON_PATH = Path(__file__).parent / "docs" / "data.json"
+
+# 通知元のアプリ名 -> platform名。判定は小文字化した部分一致で行う。
+APP_PATTERNS = [
+    ("instagram", "instagram"),
+    ("tiktok", "tiktok"),
+    ("twitter", "x"),
+    ("x", "x"),
+]
+
+# アプリを開くためのリンク(通知には投稿URLが含まれないため、プロフィールや
+# アプリのトップに飛ばすことしかできない)
+PLATFORM_URLS = {
+    "instagram": "https://www.instagram.com/{author}/",
+    "x": "https://x.com/{author}",
+    "tiktok": "https://www.tiktok.com/@{author}",
+}
+PLATFORM_FALLBACK_URLS = {
+    "instagram": "https://www.instagram.com/",
+    "x": "https://x.com/",
+    "tiktok": "https://www.tiktok.com/",
+}
+
+
+def detect_platform(app_name):
+    """アプリ名からplatformを判定する。判定できなければ None。"""
+    name = (app_name or "").strip().lower()
+    if not name:
+        return None
+    for pattern, platform in APP_PATTERNS:
+        if pattern in name:
+            return platform
+    return None
+
+
+def _looks_like_handle(text):
+    """Instagramのようにユーザー名がそのまま通知タイトルに入るケースを拾う。
+
+    注意: str.isalnum() は日本語も真を返すため、それだけで判定すると
+    「谷崎早耶」のような表示名をユーザー名と誤認して
+    https://x.com/谷崎早耶 のような壊れたURLを作ってしまう。ASCIIに限定する。
+    """
+    candidate = (text or "").strip().lstrip("@")
+    if not candidate or len(candidate) > 40:
+        return False
+    return all(("a" <= c <= "z") or ("A" <= c <= "Z") or c.isdigit() or c in "._-"
+               for c in candidate)
+
+
+def build_handle_map(cfg):
+    """(platform, 小文字のユーザー名) -> メンバー名 の対応表を作る。
+
+    通知には日本語の名前ではなくユーザー名だけが入ることが多いため
+    (例: Instagramの「suzuki_hitomi__」)、config.yaml のアカウント情報から
+    引けるようにしておく。
+    """
+    mapping = {}
+    for m in cfg.get("members", []):
+        name = m.get("name")
+        if not name:
+            continue
+        for platform in ("instagram", "x", "tiktok"):
+            username = (m.get(platform) or {}).get("username")
+            if username:
+                mapping[(platform, username.lower())] = name
+    return mapping
+
+
+def find_member_for_notification(platform, title, content, handle_map, member_names):
+    """通知からメンバーを特定する。ユーザー名 -> 日本語名の順で試す。"""
+    handle = (title or "").strip().lstrip("@").lower()
+    if handle:
+        matched = handle_map.get((platform, handle))
+        if matched:
+            return matched
+
+    lowered = (content or "").lower()
+    for (mapped_platform, username), name in handle_map.items():
+        if mapped_platform == platform and username in lowered:
+            return name
+
+    return member_match.find_member(content, member_names)
+
+
+def build_post(payload, member_names, handle_map):
+    """通知のペイロードから、DBに入れる1件分のdictを組み立てる。"""
+    platform = detect_platform(payload.get("app"))
+    if not platform:
+        raise ValueError(f"対応していないアプリからの通知です: {payload.get('app')!r}")
+
+    title = (payload.get("title") or "").strip()
+    text = (payload.get("text") or "").strip()
+    content = " ".join(part for part in (title, text) if part)
+    if not content:
+        raise ValueError("通知の本文が空です")
+
+    # 通知にはユーザー名が入っていたり入っていなかったりする。
+    # タイトルがユーザー名っぽければリンク先に使い、そうでなければアプリのトップへ。
+    author = title or platform
+    if _looks_like_handle(title):
+        url = PLATFORM_URLS[platform].format(author=title.strip().lstrip("@"))
+    else:
+        url = PLATFORM_FALLBACK_URLS[platform]
+
+    received_at = payload.get("time")
+    if received_at:
+        try:
+            published_at = datetime.datetime.fromisoformat(received_at).isoformat()
+        except ValueError:
+            published_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    else:
+        published_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+    # 同じ通知が二重に飛んできても増えないよう、内容と日付からIDを作る。
+    # (同じ文面の通知が同じ日に2回来ることはまずないという前提)
+    day = published_at[:10]
+    digest = hashlib.sha1(f"{platform}|{content}|{day}".encode("utf-8")).hexdigest()
+
+    return {
+        "platform": platform,
+        "source_id": f"notif-{digest[:16]}",
+        "author": author,
+        "content": content,
+        "url": url,
+        "image_url": None,
+        "published_at": published_at,
+        "member": find_member_for_notification(
+            platform, title, content, handle_map, member_names
+        ),
+    }
+
+
+def main():
+    raw = os.environ.get("NOTIFICATION_PAYLOAD", "").strip()
+    if not raw:
+        print("NOTIFICATION_PAYLOAD が空です", file=sys.stderr)
+        return 1
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as e:
+        # 通知の文面に引用符や改行が含まれるとJSONが壊れることがある。
+        print(f"ペイロードのJSONを解釈できませんでした: {e}", file=sys.stderr)
+        return 1
+
+    cfg = config.load_config()
+    member_names = [m["name"] for m in cfg.get("members", []) if m.get("name")]
+    handle_map = build_handle_map(cfg)
+
+    try:
+        post = build_post(payload, member_names, handle_map)
+    except ValueError as e:
+        print(f"通知を記録できませんでした: {e}", file=sys.stderr)
+        return 1
+
+    db.init_db()
+    db.import_from_json(DOCS_DATA_JSON_PATH)
+
+    if db.insert_post(**post):
+        print(f"[{post['platform']}] {post['content'][:60]} を記録しました")
+    else:
+        print("同じ通知が既に記録されているため、何もしませんでした")
+
+    export_json.export()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
