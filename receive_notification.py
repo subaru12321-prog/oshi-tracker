@@ -15,6 +15,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -115,6 +116,43 @@ def build_handle_map(cfg):
     return mapping
 
 
+# 通知本文に投稿へのリンクが入っていることがある(TikTokの vt.tiktok.com/... など)。
+# スキーム付きのURLと、スキームを省略したドメイン+パスの両方を拾う。
+URL_RE = re.compile(
+    r"https?://\S+"
+    r"|\b(?:[\w-]+\.)+(?:com|jp|net|org|io|be|co|tv|me)/\S+"
+)
+
+
+def extract_url(text):
+    """通知本文からURLらしき文字列を取り出す。無ければ None。"""
+    match = URL_RE.search(text or "")
+    if not match:
+        return None
+    url = match.group(0).rstrip("。、．，)）」』.,")
+    if not url.startswith("http"):
+        url = "https://" + url
+    return url
+
+
+def build_profile_map(cfg):
+    """(platform, メンバー名) -> ユーザー名 の対応表を作る。
+
+    通知に投稿URLが入っていない場合でも、メンバーさえ分かれば
+    その人のプロフィールには飛ばせるようにするため。
+    """
+    mapping = {}
+    for m in cfg.get("members", []):
+        name = m.get("name")
+        if not name:
+            continue
+        for platform in ("instagram", "x", "tiktok"):
+            username = (m.get(platform) or {}).get("username")
+            if username:
+                mapping[(platform, name)] = username
+    return mapping
+
+
 def build_alias_map(cfg):
     """通知に出てくる表示名 -> メンバー名 の対応表を作る。
 
@@ -157,7 +195,7 @@ def find_member_for_notification(platform, title, content, handle_map, member_na
     return member_match.find_member(content, member_names)
 
 
-def build_post(payload, member_names, handle_map, alias_map=None):
+def build_post(payload, member_names, handle_map, alias_map=None, profile_map=None):
     """通知のペイロードから、DBに入れる1件分のdictを組み立てる。"""
     platform = detect_platform(payload.get("app"))
     if not platform:
@@ -181,15 +219,7 @@ def build_post(payload, member_names, handle_map, alias_map=None):
     if not content:
         raise ValueError("通知の本文が空です")
 
-    # 通知にはユーザー名が入っていたり入っていなかったりする。
-    # タイトルがユーザー名っぽければリンク先に使い、そうでなければアプリのトップへ。
     author = title or platform
-    handle = _first_handle_candidate(title)
-    if _looks_like_handle(handle):
-        url = PLATFORM_URLS[platform].format(author=handle.lstrip("@"))
-    else:
-        url = PLATFORM_FALLBACK_URLS[platform]
-
     lowered = content.lower()
     if any(pattern.lower() in lowered for pattern in STORY_PATTERNS):
         raise ValueError("ストーリーズの通知は記録しない設定です")
@@ -206,6 +236,24 @@ def build_post(payload, member_names, handle_map, alias_map=None):
             "どのメンバーの通知か特定できませんでした(DMや他人の通知の可能性が"
             "あるため、公開ページには記録しません)"
         )
+
+    # リンク先は次の優先順位で決める。
+    #   1. 通知本文に入っているURL(投稿への直リンク。TikTokなど)
+    #   2. 通知タイトルがユーザー名そのものなら、そのプロフィール
+    #   3. 特定できたメンバーのプロフィール(config.yamlのユーザー名を使う)
+    #   4. アプリのトップページ
+    # X・Instagramは通知に投稿IDが含まれないため、1が無い場合に
+    # その投稿へ直接飛ぶリンクを作ることはできない。
+    handle = _first_handle_candidate(title)
+    profile_handle = (profile_map or {}).get((platform, member))
+    if extract_url(content):
+        url = extract_url(content)
+    elif _looks_like_handle(handle):
+        url = PLATFORM_URLS[platform].format(author=handle.lstrip("@"))
+    elif profile_handle:
+        url = PLATFORM_URLS[platform].format(author=profile_handle)
+    else:
+        url = PLATFORM_FALLBACK_URLS[platform]
 
     received_at = payload.get("time")
     if received_at:
@@ -250,9 +298,10 @@ def main():
     member_names = [m["name"] for m in cfg.get("members", []) if m.get("name")]
     handle_map = build_handle_map(cfg)
     alias_map = build_alias_map(cfg)
+    profile_map = build_profile_map(cfg)
 
     try:
-        post = build_post(payload, member_names, handle_map, alias_map)
+        post = build_post(payload, member_names, handle_map, alias_map, profile_map)
     except ValueError as e:
         # 対象外の通知(DM・いいね・他アプリ等)を弾くのは正常な動作なので、
         # ワークフローを失敗扱いにしない。失敗にするとGitHubから毎回
