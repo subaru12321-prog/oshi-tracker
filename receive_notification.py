@@ -115,13 +115,39 @@ def build_handle_map(cfg):
     return mapping
 
 
-def find_member_for_notification(platform, title, content, handle_map, member_names):
+def build_alias_map(cfg):
+    """通知に出てくる表示名 -> メンバー名 の対応表を作る。
+
+    通知のタイトルはユーザー名とは限らず、アプリ上の表示名が入ることがある
+    (例: TikTokの「≠ME_official」)。config.yaml の aliases: に書いておくと
+    それも手がかりにする。
+    """
+    mapping = {}
+    for m in cfg.get("members", []):
+        name = m.get("name")
+        if not name:
+            continue
+        for alias in m.get("aliases") or []:
+            mapping[str(alias).strip().lower()] = name
+    return mapping
+
+
+def find_member_for_notification(platform, title, content, handle_map, member_names,
+                                 alias_map=None):
     """通知からメンバーを特定する。ユーザー名 -> 日本語名の順で試す。"""
     handle = _first_handle_candidate(title).lstrip("@").lower()
     if handle:
         matched = handle_map.get((platform, handle))
         if matched:
             return matched
+        matched = (alias_map or {}).get(handle)
+        if matched:
+            return matched
+
+    # タイトル全体が表示名になっていることもある
+    matched = (alias_map or {}).get((title or "").strip().lower())
+    if matched:
+        return matched
 
     lowered = (content or "").lower()
     for (mapped_platform, username), name in handle_map.items():
@@ -131,7 +157,7 @@ def find_member_for_notification(platform, title, content, handle_map, member_na
     return member_match.find_member(content, member_names)
 
 
-def build_post(payload, member_names, handle_map):
+def build_post(payload, member_names, handle_map, alias_map=None):
     """通知のペイロードから、DBに入れる1件分のdictを組み立てる。"""
     platform = detect_platform(payload.get("app"))
     if not platform:
@@ -169,7 +195,7 @@ def build_post(payload, member_names, handle_map):
         raise ValueError("ストーリーズの通知は記録しない設定です")
 
     member = find_member_for_notification(
-        platform, title, content, handle_map, member_names
+        platform, title, content, handle_map, member_names, alias_map
     )
     # 【重要】メンバーだと特定できない通知は記録しない。
     # Instagram等はDM・いいね・コメントの通知も送ってくるため、
@@ -223,9 +249,10 @@ def main():
     cfg = config.load_config()
     member_names = [m["name"] for m in cfg.get("members", []) if m.get("name")]
     handle_map = build_handle_map(cfg)
+    alias_map = build_alias_map(cfg)
 
     try:
-        post = build_post(payload, member_names, handle_map)
+        post = build_post(payload, member_names, handle_map, alias_map)
     except ValueError as e:
         # 対象外の通知(DM・いいね・他アプリ等)を弾くのは正常な動作なので、
         # ワークフローを失敗扱いにしない。失敗にするとGitHubから毎回

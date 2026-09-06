@@ -103,6 +103,12 @@ members:
       username: "honda_miyuki_"
 
   - name: "公式(グループ全体)"
+    # aliases: 通知のタイトルに出てくる「表示名」。ユーザー名と違うことがあるため
+    # ここに書いておくと、通知をこのメンバーに紐付けられる。
+    # 通知が「メンバー不明」で弾かれる場合は、その表示名をここに足す。
+    aliases:
+      - "≠ME_official"
+      - "≠ME"
     instagram:
       username: "notequal_me.official"
     x:
