@@ -186,8 +186,11 @@ def main():
     try:
         post = build_post(payload, member_names, handle_map)
     except ValueError as e:
-        print(f"通知を記録できませんでした: {e}", file=sys.stderr)
-        return 1
+        # 対象外の通知(DM・いいね・他アプリ等)を弾くのは正常な動作なので、
+        # ワークフローを失敗扱いにしない。失敗にするとGitHubから毎回
+        # 「実行に失敗しました」というメールが届いてしまう。
+        print(f"この通知は記録対象外なのでスキップしました: {e}")
+        return 0
 
     db.init_db()
     db.import_from_json(DOCS_DATA_JSON_PATH)
