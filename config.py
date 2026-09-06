@@ -20,7 +20,4 @@ def load_config():
         return yaml.safe_load(f)
 
 
-X_USERNAME = os.getenv("X_USERNAME")
-X_EMAIL = os.getenv("X_EMAIL")
-X_PASSWORD = os.getenv("X_PASSWORD")
 TIKTOK_MS_TOKEN = os.getenv("TIKTOK_MS_TOKEN")

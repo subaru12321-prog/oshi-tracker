@@ -116,7 +116,6 @@ main {
 }
 
 .platform-tag {
-  text-transform: uppercase;
   font-weight: bold;
   color: var(--accent);
 }

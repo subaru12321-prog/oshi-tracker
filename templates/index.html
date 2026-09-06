@@ -13,7 +13,7 @@
   <nav class="platform-nav">
     <a href="{{ url_for('index', member=active_member) }}" class="{{ 'active' if not active_platform else '' }}">すべて</a>
     {% for p in platforms %}
-    <a href="{{ url_for('index', platform=p, member=active_member) }}" class="{{ 'active' if active_platform == p else '' }}">{{ p }}</a>
+    <a href="{{ url_for('index', platform=p, member=active_member) }}" class="{{ 'active' if active_platform == p else '' }}">{{ platform_labels.get(p, p) }}</a>
     {% endfor %}
   </nav>
 
@@ -43,7 +43,7 @@
       {% endif %}
       <div class="body">
         <div class="meta">
-          <span class="platform-tag">{{ post.platform }}</span>
+          <span class="platform-tag">{{ platform_labels.get(post.platform, post.platform) }}</span>
           {% if post.member %}<span class="member-tag">{{ post.member }}</span>{% endif %}
           <span class="time">{{ post.published_at }}</span>
         </div>

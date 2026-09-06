@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 cookies.json
 tiktok_session/
+*.db

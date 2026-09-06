@@ -7,7 +7,15 @@ members:
       room_url_key: "SHOWROOMのルームURLの末尾部分"
     instagram:
       username: "instagramのユーザー名(@なし)"
-    x:
-      username: "Xのユーザー名(@なし)"
     tiktok:
-      username: "TikTokのユーザー名(@なし)"
+      username: "TikTokのユーザー名(@なし)" # ローカル実行専用。クラウド(GitHub Actions)では収集しません。
+
+# メンバー個人のアカウントではなく、グループ全体の情報源。
+sources:
+  official_site:
+    sections:
+      - news
+      - schedule
+  youtube:
+    channel_ids:
+      - "YouTubeのチャンネルID(UCで始まる文字列)"

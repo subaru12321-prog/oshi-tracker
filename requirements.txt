@@ -1,8 +1,12 @@
 requests
+beautifulsoup4
 instaloader==4.15.3
-twikit==2.3.3
-TikTokApi==7.3.3
-playwright
 flask
 python-dotenv
 pyyaml
+
+# 以下はTikTok収集(collectors/tiktok.py)をローカルで実行する場合のみ必要。
+# クラウド(GitHub Actions)では使わないためコメントアウトしている。
+# 使う場合は先頭の#を外してインストールしてください。
+# TikTokApi==7.3.3
+# playwright

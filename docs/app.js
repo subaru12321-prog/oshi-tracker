@@ -2,6 +2,30 @@ let allPosts = [];
 let activePlatform = "";
 let activeMember = "";
 
+// 表示順・表示ラベルの単一の定義元。
+const PLATFORM_LABELS = {
+  showroom: "SHOWROOM",
+  official: "公式ニュース",
+  schedule: "スケジュール",
+  youtube: "YouTube",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+};
+
+function platformLabel(platform) {
+  return PLATFORM_LABELS[platform] || platform;
+}
+
+function buildPlatformNav() {
+  const nav = document.getElementById("platform-nav");
+  for (const platform of Object.keys(PLATFORM_LABELS)) {
+    const btn = document.createElement("button");
+    btn.dataset.platform = platform;
+    btn.textContent = platformLabel(platform);
+    nav.appendChild(btn);
+  }
+}
+
 function fmtDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -16,13 +40,26 @@ function render() {
 
   const filtered = allPosts.filter((p) => {
     if (activePlatform && p.platform !== activePlatform) return false;
+    // 絞り込みなしの「すべて」では、未来日のスケジュールを混ぜない
+    // (混ぜると常に先頭に居座って新着が見えなくなるため)。
+    if (!activePlatform && p.platform === "schedule") return false;
     if (activeMember && p.member !== activeMember) return false;
     return true;
   });
 
-  empty.hidden = filtered.length > 0;
+  // スケジュールだけを見るときは、終わった予定を隠して近い順に並べる。
+  let shown = filtered;
+  if (activePlatform === "schedule") {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    shown = filtered
+      .filter((p) => new Date(p.published_at) >= startOfToday)
+      .sort((a, b) => (a.published_at || "").localeCompare(b.published_at || ""));
+  }
 
-  for (const post of filtered) {
+  empty.hidden = shown.length > 0;
+
+  for (const post of shown) {
     const li = document.createElement("li");
     li.className = `post platform-${post.platform}`;
 
@@ -43,7 +80,7 @@ function render() {
 
     const platformTag = document.createElement("span");
     platformTag.className = "platform-tag";
-    platformTag.textContent = post.platform;
+    platformTag.textContent = platformLabel(post.platform);
     meta.appendChild(platformTag);
 
     if (post.member) {
@@ -98,6 +135,7 @@ async function init() {
     updated.textContent = `最終更新: ${fmtDate(payload.generated_at)}`;
   }
 
+  buildPlatformNav();
   populateMemberSelect();
   render();
 

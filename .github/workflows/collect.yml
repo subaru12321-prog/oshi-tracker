@@ -27,14 +27,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          playwright install --with-deps chromium
 
       - name: Run collectors
-        env:
-          X_USERNAME: ${{ secrets.X_USERNAME }}
-          X_EMAIL: ${{ secrets.X_EMAIL }}
-          X_PASSWORD: ${{ secrets.X_PASSWORD }}
-          TIKTOK_MS_TOKEN: ${{ secrets.TIKTOK_MS_TOKEN }}
         run: python main.py
 
       - name: Export data.json for GitHub Pages
@@ -44,11 +38,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add posts.db docs/data.json
+          git add docs/data.json
           git diff --cached --quiet && exit 0
           git commit -m "chore: update collected posts"
           # ローカルからほぼ同時にpushされた場合に備えて一度pullしてからpushする。
-          # posts.db はバイナリなのでコンフリクトしたらそのまま失敗させ、
-          # 次回の定期実行に委ねる(自動でのマージは危険なのでしない)。
           git pull --rebase --autostash
           git push
