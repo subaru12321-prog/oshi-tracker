@@ -46,6 +46,9 @@ PLATFORM_URLS = {
 # 件数のわりに情報として使えないため除外する。
 STORY_PATTERNS = ("ストーリーズ", "ストーリー", "stories", "story")
 
+# スマホ側が「通知タイトル ||| 通知本文」の形でつないで送ってくるときの区切り
+RAW_SEPARATOR = "|||"
+
 PLATFORM_FALLBACK_URLS = {
     "instagram": "https://www.instagram.com/",
     "x": "https://x.com/",
@@ -134,8 +137,20 @@ def build_post(payload, member_names, handle_map):
     if not platform:
         raise ValueError(f"対応していないアプリからの通知です: {payload.get('app')!r}")
 
-    title = (payload.get("title") or "").strip()
-    text = (payload.get("text") or "").strip()
+    # スマホ側は、通知のタイトルと本文を区切り文字でつないだ1つの文字列
+    # (raw)として送ってくる。通知の文面に引用符や改行が含まれるとJSONが
+    # 壊れてGitHubに 400 で弾かれるため、送信前にまとめて危険な文字を
+    # 取り除いてもらう都合でこの形にしている。
+    # title/text を個別に送る旧形式も引き続き受け付ける。
+    raw = payload.get("raw")
+    if raw is not None:
+        parts = str(raw).split(RAW_SEPARATOR, 1)
+        title = parts[0].strip()
+        text = parts[1].strip() if len(parts) > 1 else ""
+    else:
+        title = (payload.get("title") or "").strip()
+        text = (payload.get("text") or "").strip()
+
     content = " ".join(part for part in (title, text) if part)
     if not content:
         raise ValueError("通知の本文が空です")
