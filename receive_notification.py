@@ -40,6 +40,12 @@ PLATFORM_URLS = {
     "x": "https://x.com/{author}",
     "tiktok": "https://www.tiktok.com/@{author}",
 }
+# ストーリーズの通知は記録しない。
+# 24時間で消えるうえ通知に個別リンクが含まれず、さらにInstagramが複数人分を
+# 1通にまとめて送ってくるため先頭の1人にしか紐付けられない。
+# 件数のわりに情報として使えないため除外する。
+STORY_PATTERNS = ("ストーリーズ", "ストーリー", "stories", "story")
+
 PLATFORM_FALLBACK_URLS = {
     "instagram": "https://www.instagram.com/",
     "x": "https://x.com/",
@@ -142,6 +148,10 @@ def build_post(payload, member_names, handle_map):
         url = PLATFORM_URLS[platform].format(author=handle.lstrip("@"))
     else:
         url = PLATFORM_FALLBACK_URLS[platform]
+
+    lowered = content.lower()
+    if any(pattern.lower() in lowered for pattern in STORY_PATTERNS):
+        raise ValueError("ストーリーズの通知は記録しない設定です")
 
     member = find_member_for_notification(
         platform, title, content, handle_map, member_names
