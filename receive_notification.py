@@ -58,6 +58,21 @@ def detect_platform(app_name):
     return None
 
 
+def _first_handle_candidate(title):
+    """通知タイトルの先頭にあるユーザー名らしき部分を取り出す。
+
+    Instagramは複数人の更新を1通にまとめることがあり、タイトルが
+    「honda_miyuki__、他6人」のような形になる。丸ごとユーザー名として
+    扱うとリンクが壊れるので、区切り文字より前だけを見る。
+    """
+    candidate = (title or "").strip()
+    for separator in ("、", ",", " と", "・"):
+        if separator in candidate:
+            candidate = candidate.split(separator)[0]
+            break
+    return candidate.strip()
+
+
 def _looks_like_handle(text):
     """Instagramのようにユーザー名がそのまま通知タイトルに入るケースを拾う。
 
@@ -93,7 +108,7 @@ def build_handle_map(cfg):
 
 def find_member_for_notification(platform, title, content, handle_map, member_names):
     """通知からメンバーを特定する。ユーザー名 -> 日本語名の順で試す。"""
-    handle = (title or "").strip().lstrip("@").lower()
+    handle = _first_handle_candidate(title).lstrip("@").lower()
     if handle:
         matched = handle_map.get((platform, handle))
         if matched:
@@ -122,8 +137,9 @@ def build_post(payload, member_names, handle_map):
     # 通知にはユーザー名が入っていたり入っていなかったりする。
     # タイトルがユーザー名っぽければリンク先に使い、そうでなければアプリのトップへ。
     author = title or platform
-    if _looks_like_handle(title):
-        url = PLATFORM_URLS[platform].format(author=title.strip().lstrip("@"))
+    handle = _first_handle_candidate(title)
+    if _looks_like_handle(handle):
+        url = PLATFORM_URLS[platform].format(author=handle.lstrip("@"))
     else:
         url = PLATFORM_FALLBACK_URLS[platform]
 
