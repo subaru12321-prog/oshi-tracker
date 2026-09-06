@@ -127,6 +127,19 @@ def build_post(payload, member_names, handle_map):
     else:
         url = PLATFORM_FALLBACK_URLS[platform]
 
+    member = find_member_for_notification(
+        platform, title, content, handle_map, member_names
+    )
+    # 【重要】メンバーだと特定できない通知は記録しない。
+    # Instagram等はDM・いいね・コメントの通知も送ってくるため、
+    # 素通しすると私信の内容が公開ページに載ってしまう。
+    # config.yaml に載っているアカウント由来のものだけを通す。
+    if not member:
+        raise ValueError(
+            "どのメンバーの通知か特定できませんでした(DMや他人の通知の可能性が"
+            "あるため、公開ページには記録しません)"
+        )
+
     received_at = payload.get("time")
     if received_at:
         try:
@@ -149,9 +162,7 @@ def build_post(payload, member_names, handle_map):
         "url": url,
         "image_url": None,
         "published_at": published_at,
-        "member": find_member_for_notification(
-            platform, title, content, handle_map, member_names
-        ),
+        "member": member,
     }
 
 
