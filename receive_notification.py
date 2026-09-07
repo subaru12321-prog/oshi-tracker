@@ -15,7 +15,6 @@ import datetime
 import hashlib
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -114,25 +113,6 @@ def build_handle_map(cfg):
             if username:
                 mapping[(platform, username.lower())] = name
     return mapping
-
-
-# 通知本文に投稿へのリンクが入っていることがある(TikTokの vt.tiktok.com/... など)。
-# スキーム付きのURLと、スキームを省略したドメイン+パスの両方を拾う。
-URL_RE = re.compile(
-    r"https?://\S+"
-    r"|\b(?:[\w-]+\.)+(?:com|jp|net|org|io|be|co|tv|me)/\S+"
-)
-
-
-def extract_url(text):
-    """通知本文からURLらしき文字列を取り出す。無ければ None。"""
-    match = URL_RE.search(text or "")
-    if not match:
-        return None
-    url = match.group(0).rstrip("。、．，)）」』.,")
-    if not url.startswith("http"):
-        url = "https://" + url
-    return url
 
 
 def build_profile_map(cfg):
@@ -237,21 +217,22 @@ def build_post(payload, member_names, handle_map, alias_map=None, profile_map=No
             "あるため、公開ページには記録しません)"
         )
 
-    # リンク先は次の優先順位で決める。
-    #   1. 通知本文に入っているURL(投稿への直リンク。TikTokなど)
-    #   2. 通知タイトルがユーザー名そのものなら、そのプロフィール
-    #   3. 特定できたメンバーのプロフィール(config.yamlのユーザー名を使う)
-    #   4. アプリのトップページ
-    # X・Instagramは通知に投稿IDが含まれないため、1が無い場合に
-    # その投稿へ直接飛ぶリンクを作ることはできない。
+    # リンク先は「投稿元(本人のプロフィール)」に統一する。
+    #   1. 特定できたメンバーのプロフィール(config.yamlのユーザー名を使う)
+    #   2. 通知タイトルがユーザー名そのものなら、それを使う
+    #   3. アプリのトップページ
+    #
+    # 以前は通知本文からURLを拾って投稿への直リンクにしていたが、
+    # 日本語には単語の区切りに空白が無いため、URLの後ろに続く本文まで
+    # まとめてURLとして拾ってしまい、開けないリンクが量産された。
+    # X・Instagramはそもそも通知に投稿IDを含まないので直リンクは作れない。
+    # プロフィールに飛べれば最新の投稿は見られるため、確実な方を選ぶ。
     handle = _first_handle_candidate(title)
     profile_handle = (profile_map or {}).get((platform, member))
-    if extract_url(content):
-        url = extract_url(content)
+    if profile_handle:
+        url = PLATFORM_URLS[platform].format(author=profile_handle)
     elif _looks_like_handle(handle):
         url = PLATFORM_URLS[platform].format(author=handle.lstrip("@"))
-    elif profile_handle:
-        url = PLATFORM_URLS[platform].format(author=profile_handle)
     else:
         url = PLATFORM_FALLBACK_URLS[platform]
 
